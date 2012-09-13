@@ -89,13 +89,16 @@ public class MercurialSCM extends SCM implements Serializable {
 
     private HgBrowser browser;
 
+    private final boolean changelog;
+
     @DataBoundConstructor
-    public MercurialSCM(String installation, String source, String branch, String modules, String subdir, HgBrowser browser, boolean clean) {
+    public MercurialSCM(String installation, String source, String branch, String modules, String subdir, HgBrowser browser, boolean clean, boolean changelog) {
         this.installation = installation;
         this.source = Util.fixEmptyAndTrim(source);
         this.modules = Util.fixNull(modules);
         this.subdir = Util.fixEmptyAndTrim(subdir);
         this.clean = clean;
+        this.changelog = changelog;
         parseModules();
         branch = Util.fixEmpty(branch);
         if (branch != null && branch.equals("default")) {
@@ -389,12 +392,14 @@ public class MercurialSCM extends SCM implements Serializable {
             clone(build, launcher, repository, listener);
         }
 
-        try {
-            determineChanges(build, launcher, listener, changelogFile, repository);
-        } catch (IOException e) {
-            listener.error("Failed to capture change log");
-            e.printStackTrace(listener.getLogger());
-            throw new AbortException("Failed to capture change log");
+        if (changelog) {
+            try {
+                determineChanges(build, launcher, listener, changelogFile, repository);
+            } catch (IOException e) {
+                listener.error("Failed to capture change log");
+                e.printStackTrace(listener.getLogger());
+                throw new AbortException("Failed to capture change log");
+            }
         }
         return true;
     }
@@ -455,9 +460,8 @@ public class MercurialSCM extends SCM implements Serializable {
                 ArgumentListBuilder args = findHgExe(build, listener, false);
                 args.add("log");
                 args.add("--template", MercurialChangeSet.CHANGELOG_TEMPLATE);
-                args.add("--rev", getBranch(env) + ":0");
+                args.add("--rev", getBranch(env) + ":" + prevTag.getId());
                 args.add("--follow");
-                args.add("--prune", prevTag.getId());
 
                 ByteArrayOutputStream errorLog = new ByteArrayOutputStream();
 
