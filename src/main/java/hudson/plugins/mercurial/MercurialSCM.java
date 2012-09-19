@@ -400,6 +400,8 @@ public class MercurialSCM extends SCM implements Serializable {
                 e.printStackTrace(listener.getLogger());
                 throw new AbortException("Failed to capture change log");
             }
+        } else {
+            createEmptyChangeLog(changelogFile, listener, "changelog");
         }
         return true;
     }
